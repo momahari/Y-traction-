@@ -25,7 +25,7 @@
     "webNavigation"
     ],
     "host_permissions": [
-        "*://*.youtube.com/*",
+        "https:://*.youtube.com/*",
         "<all_urls>"
     ],
     "content_scripts": [
