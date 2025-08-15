@@ -52,7 +52,7 @@ function checkTimer() {
         if (result.timerRunning && result.timerEndTime && Date.now() >= result.timerEndTime) {
             chrome.notifications.create({
                 type: 'basic',
-                iconUrl: 'icons/icon48.png',
+                iconUrl: 'icons/notification48.png',
                 title: 'Time\'s Up!',
                 message: 'Your browsing timer has ended!',
                 priority: 2
