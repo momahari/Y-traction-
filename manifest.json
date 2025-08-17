@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Y-traction",
-    "description": "Hide YouTube ads, comments, and more functionalities to be more productive when using youtube.",
+    "description": "Hide YouTube ads, comments, and more functionalities to be more productive when using YouTube.",
     "version": "2.1.0",
     "action": {
         "default_popup": "popup/popup.html"
