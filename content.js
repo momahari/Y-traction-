@@ -70,25 +70,40 @@ function toggleElements(selectors, shouldHide) {
 }
 
 /**
- * Applies all stored settings to the page
+ * Applies all stored settings to the page (callback-based, no async)
  */
-async function applyAllSettings() {
+function applyAllSettings(callback) {
     try {
         // Safety check for chrome storage API
         if (!chrome?.storage?.local) {
             console.warn('Chrome storage API not available');
+            callback && callback();
             return;
         }
         
-        const settings = await chrome.storage.local.get(null);
-        Object.entries(settings).forEach(([key, value]) => {
-            if (YOUTUBE_SELECTORS[key]) {
-                toggleElements(YOUTUBE_SELECTORS[key], value);
-                settingsCache.set(key, value);
+        chrome.storage.local.get(null, (settings) => {
+            if (chrome.runtime.lastError) {
+                console.error('Storage access error:', chrome.runtime.lastError);
+                callback && callback();
+                return;
             }
+            
+            try {
+                Object.entries(settings).forEach(([key, value]) => {
+                    if (YOUTUBE_SELECTORS[key]) {
+                        toggleElements(YOUTUBE_SELECTORS[key], value);
+                        settingsCache.set(key, value);
+                    }
+                });
+            } catch (settingsError) {
+                console.error('Error applying individual settings:', settingsError);
+            }
+            
+            callback && callback();
         });
     } catch (error) {
-        console.error('Error applying settings:', error);
+        console.error('Error in applyAllSettings:', error);
+        callback && callback();
     }
 }
 
@@ -115,13 +130,10 @@ if (chrome?.runtime?.onMessage) {
                     break;
 
                 case "applySettings":
-                    applyAllSettings().then(() => {
+                    applyAllSettings(() => {
                         sendResponse({ status: "settings_applied" });
-                    }).catch((error) => {
-                        console.error('Error applying settings via message:', error);
-                        sendResponse({ error: error.message });
                     });
-                    return true; // Keep message channel open for async response
+                    return true; // Keep message channel open
 
                 default:
                     sendResponse({ status: "unknown_message_type" });
@@ -146,9 +158,7 @@ function debounce(func, wait) {
 }
 
 const debouncedApplySettings = debounce(() => {
-    applyAllSettings().catch(err => {
-        console.error('Error in debouncedApplySettings:', err);
-    });
+    applyAllSettings();
 }, 250);
 
 // MutationObserver for DOM changes
@@ -195,9 +205,7 @@ if (document.body) {
 
 // Apply settings immediately on load
 function initializeSettings() {
-    applyAllSettings().catch(err => {
-        console.error('Error applying initial settings:', err);
-    });
+    applyAllSettings();
 }
 
 // Wait for document to be ready
@@ -215,9 +223,7 @@ if (titleElement) {
         if (location.href !== lastUrl) {
             lastUrl = location.href;
             setTimeout(() => {
-                applyAllSettings().catch(err => {
-                    console.error('Error applying settings after navigation:', err);
-                });
+                applyAllSettings();
             }, 500);
         }
     }).observe(titleElement, {

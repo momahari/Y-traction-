@@ -171,11 +171,13 @@ function showBlockedPage(domain) {
                     <button class="btn" onclick="openYTraction()">⚙️ Settings</button>
                 </div>
                 <div class="stats">
-                    Time saved: Every moment counts! 🎯
+                    Time saved: Every moment counts!
+                    <br>your time and your brain are the most valuable assets you have.
                 </div>
                 <div class="footer">
                     Blocked by <strong>Y-Traction Extension</strong><br>
-                    Stay focused, stay productive!
+                    Stay Hard, stay focused!
+                    <br>Have a productive day! 🚀
                 </div>
             </div>
             
