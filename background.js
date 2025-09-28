@@ -88,6 +88,69 @@ function showTimerAlert(mode, cycleOrTotal) {
     } catch (e) {}
 }
 
+// Website blocking functionality
+let blockedWebsites = [];
+let blockingEnabled = false;
+
+function updateWebsiteBlocking(websites, enabled) {
+    blockedWebsites = websites || [];
+    blockingEnabled = enabled || false;
+    
+    if (!blockingEnabled || blockedWebsites.length === 0) {
+        // Clear all blocking rules
+        chrome.declarativeNetRequest?.updateDynamicRules({
+            removeRuleIds: Array.from({length: 1000}, (_, i) => i + 1)
+        }).catch(err => {
+            console.warn('Failed to clear blocking rules:', err);
+        });
+        return;
+    }
+
+    // Create blocking rules
+    const rules = blockedWebsites.map((website, index) => ({
+        id: index + 1,
+        priority: 1,
+        action: {
+            type: "redirect",
+            redirect: {
+                url: `data:text/html,<html><head><title>Blocked</title><style>body{font-family:Arial,sans-serif;text-align:center;padding:50px;background:#f5f5f5;}</style></head><body><h1>🚫 Website Blocked</h1><p>This website (${website}) has been blocked to help you stay focused.</p><p><small>Y-Traction Extension</small></p></body></html>`
+            }
+        },
+        condition: {
+            urlFilter: `*://*.${website}/*`,
+            resourceTypes: ["main_frame"]
+        }
+    }));
+
+    // Update blocking rules
+    chrome.declarativeNetRequest?.updateDynamicRules({
+        removeRuleIds: Array.from({length: 1000}, (_, i) => i + 1),
+        addRules: rules
+    }).catch(err => {
+        console.warn('Failed to update blocking rules:', err);
+        console.log('Attempting alternative blocking method...');
+        // Fallback: use webRequest blocking
+        useWebRequestBlocking(websites, enabled);
+    });
+}
+
+function useWebRequestBlocking(websites, enabled) {
+    // Alternative blocking method using webRequest
+    if (chrome.webRequest) {
+        const urls = websites.map(site => `*://*.${site}/*`);
+        
+        if (enabled && urls.length > 0) {
+            chrome.webRequest.onBeforeRequest.addListener(
+                function(details) {
+                    return {cancel: true};
+                },
+                {urls: urls},
+                ["blocking"]
+            );
+        }
+    }
+}
+
 // Enhanced timer check with more granular state management
 function checkTimer() {
     chrome.storage.local.get(['timerState'], (result) => {
@@ -211,6 +274,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ status: "Cycles completion handled" });
             break;
 
+        case "updateBlockingRules":
+            // Handle website blocking rules
+            updateWebsiteBlocking(message.websites, message.enabled);
+            sendResponse({ status: "Blocking rules updated" });
+            break;
+
         case "updateSwitch":
             chrome.tabs.query({ url: "*://*.youtube.com/*" }, (tabs) => {
                 tabs.forEach(tab => {
@@ -254,6 +323,13 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 chrome.runtime.onInstalled.addListener(() => {
     // Clean up old timer data on install
     chrome.storage.local.remove(['timerEndTime', 'timerRunning', 'timerState']);
+    
+    // Initialize website blocking
+    chrome.storage.local.get(['blockedWebsites', 'blockingEnabled'], (result) => {
+        if (result.blockedWebsites && result.blockingEnabled) {
+            updateWebsiteBlocking(result.blockedWebsites, result.blockingEnabled);
+        }
+    });
 });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -267,6 +343,13 @@ chrome.runtime.onStartup.addListener(() => {
                 // Timer expired while browser was closed
                 chrome.storage.local.remove(['timerState']);
             }
+        }
+    });
+    
+    // Initialize website blocking on startup
+    chrome.storage.local.get(['blockedWebsites', 'blockingEnabled'], (result) => {
+        if (result.blockedWebsites && result.blockingEnabled) {
+            updateWebsiteBlocking(result.blockedWebsites, result.blockingEnabled);
         }
     });
 });

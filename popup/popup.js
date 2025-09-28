@@ -497,6 +497,7 @@ function initWebsiteBlocker() {
         
         updateBlockedList();
         updateBlockingStatus();
+        updatePresetButtons(); // Add this line to update button states on load
     });
 
     // Add website button
@@ -512,7 +513,6 @@ function initWebsiteBlocker() {
         blockingToggle.addEventListener('change', () => {
             blockingEnabled = blockingToggle.checked;
             saveBlockingSettings();
-            updateBlockingRules();
             updateBlockingStatus();
         });
     }
@@ -549,7 +549,6 @@ function addWebsite() {
         blockedWebsites.push(website);
         saveBlockingSettings();
         updateBlockedList();
-        updateBlockingRules();
         updateBlockingStatus();
         updatePresetButtons();
         input.value = '';
@@ -565,7 +564,6 @@ function removeWebsite(website) {
         blockedWebsites.splice(index, 1);
         saveBlockingSettings();
         updateBlockedList();
-        updateBlockingRules();
         updateBlockingStatus();
         updatePresetButtons();
         showMessage(`${website} removed from blocked list`, 'success');
@@ -597,7 +595,6 @@ function togglePreset(presetName, button) {
 
     saveBlockingSettings();
     updateBlockedList();
-    updateBlockingRules();
     updateBlockingStatus();
 }
 
@@ -630,12 +627,18 @@ function updateBlockedList() {
     blockedWebsites.forEach(website => {
         const item = document.createElement('div');
         item.className = 'blocked-item';
-        item.innerHTML = `
-            <span class="website-name">${website}</span>
-            <button class="remove-btn" onclick="removeWebsite('${website}')">
-                <i class="fas fa-times"></i>
-            </button>
-        `;
+        
+        const websiteName = document.createElement('span');
+        websiteName.className = 'website-name';
+        websiteName.textContent = website;
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        removeBtn.addEventListener('click', () => removeWebsite(website));
+        
+        item.appendChild(websiteName);
+        item.appendChild(removeBtn);
         listContainer.appendChild(item);
     });
 }
@@ -658,30 +661,15 @@ function updateBlockingStatus() {
 }
 
 function updateBlockingRules() {
-    if (!blockingEnabled || blockedWebsites.length === 0) {
-        // Remove all blocking rules
-        chrome.declarativeNetRequest?.updateDynamicRules({
-            removeRuleIds: Array.from({length: 10000}, (_, i) => i + 1)
-        });
-        return;
-    }
-
-    // Create blocking rules
-    const rules = blockedWebsites.map((website, index) => ({
-        id: index + 1,
-        priority: 1,
-        action: {
-            type: "block"
-        },
-        condition: {
-            urlFilter: `*://*.${website}/*`,
-            resourceTypes: ["main_frame", "sub_frame"]
+    // Send message to background script to handle blocking
+    chrome.runtime.sendMessage({
+        type: "updateBlockingRules",
+        websites: blockedWebsites,
+        enabled: blockingEnabled
+    }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.warn('Failed to update blocking rules:', chrome.runtime.lastError);
         }
-    }));
-
-    chrome.declarativeNetRequest?.updateDynamicRules({
-        removeRuleIds: Array.from({length: 10000}, (_, i) => i + 1),
-        addRules: rules
     });
 }
 
@@ -689,6 +677,9 @@ function saveBlockingSettings() {
     chrome.storage.local.set({
         blockedWebsites: blockedWebsites,
         blockingEnabled: blockingEnabled
+    }, () => {
+        // Update blocking rules after saving
+        updateBlockingRules();
     });
 }
 
@@ -701,9 +692,6 @@ function showMessage(text, type = 'info') {
     // Simple message system - you can enhance this with better UI
     console.log(`${type.toUpperCase()}: ${text}`);
 }
-
-// Make removeWebsite globally accessible
-window.removeWebsite = removeWebsite;
 
 // Initialize blocker when DOM loads
 document.addEventListener('DOMContentLoaded', initWebsiteBlocker);
