@@ -93,13 +93,17 @@ let blockedWebsites = [];
 let blockingEnabled = false;
 
 function updateWebsiteBlocking(websites, enabled) {
+    console.log('Updating website blocking:', { websites, enabled });
     blockedWebsites = websites || [];
     blockingEnabled = enabled || false;
     
     if (!blockingEnabled || blockedWebsites.length === 0) {
+        console.log('Clearing blocking rules...');
         // Clear all blocking rules
         chrome.declarativeNetRequest?.updateDynamicRules({
             removeRuleIds: Array.from({length: 1000}, (_, i) => i + 1)
+        }).then(() => {
+            console.log('Blocking rules cleared successfully');
         }).catch(err => {
             console.warn('Failed to clear blocking rules:', err);
         });
@@ -122,10 +126,14 @@ function updateWebsiteBlocking(websites, enabled) {
         }
     }));
 
+    console.log('Creating blocking rules:', rules);
+
     // Update blocking rules
     chrome.declarativeNetRequest?.updateDynamicRules({
         removeRuleIds: Array.from({length: 1000}, (_, i) => i + 1),
         addRules: rules
+    }).then(() => {
+        console.log('Blocking rules updated successfully');
     }).catch(err => {
         console.warn('Failed to update blocking rules:', err);
         console.log('Attempting alternative blocking method...');

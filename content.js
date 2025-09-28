@@ -108,8 +108,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             case "applySettings":
                 applyAllSettings().then(() => {
                     sendResponse({ status: "settings_applied" });
+                }).catch((error) => {
+                    console.error('Error applying settings via message:', error);
+                    sendResponse({ error: error.message });
                 });
-                break;
+                return true; // Keep message channel open for async response
 
             default:
                 sendResponse({ status: "unknown_message_type" });
@@ -131,7 +134,9 @@ function debounce(func, wait) {
 }
 
 const debouncedApplySettings = debounce(() => {
-    applyAllSettings();
+    applyAllSettings().catch(err => {
+        console.error('Error in debouncedApplySettings:', err);
+    });
 }, 250);
 
 // MutationObserver for DOM changes
@@ -160,20 +165,29 @@ observer.observe(document.body, {
 });
 
 // Apply settings immediately on load
-applyAllSettings();
+applyAllSettings().catch(err => {
+    console.error('Error applying initial settings:', err);
+});
 
 // SPA navigation handling
 let lastUrl = location.href;
-new MutationObserver(() => {
-    if (location.href !== lastUrl) {
-        lastUrl = location.href;
-        setTimeout(applyAllSettings, 500);
-    }
-}).observe(document.querySelector('title'), {
-    subtree: true,
-    characterData: true,
-    childList: true
-});
+const titleElement = document.querySelector('title');
+if (titleElement) {
+    new MutationObserver(() => {
+        if (location.href !== lastUrl) {
+            lastUrl = location.href;
+            setTimeout(() => {
+                applyAllSettings().catch(err => {
+                    console.error('Error applying settings after navigation:', err);
+                });
+            }, 500);
+        }
+    }).observe(titleElement, {
+        subtree: true,
+        characterData: true,
+        childList: true
+    });
+}
 
 window.addEventListener('unload', () => {
     observer.disconnect();
