@@ -211,6 +211,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ status: "Cycles completion handled" });
             break;
 
+        case "openExtensionPopup":
+            // Open extension popup (this is limited by Chrome's security)
+            chrome.action.openPopup?.() || chrome.browserAction.openPopup?.();
+            sendResponse({ status: "Popup open attempted" });
+            break;
+
         case "updateBlockingRules":
             // Website blocking is now handled by content script injection
             // Just save the settings for the content script to use
