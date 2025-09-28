@@ -1,4 +1,6 @@
 // Content script for YouTube DOM manipulation
+// Safety check to ensure we're in the right context
+if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
 
 // CSS selectors for targeting YouTube interface elements
 const YOUTUBE_SELECTORS = {
@@ -72,6 +74,12 @@ function toggleElements(selectors, shouldHide) {
  */
 async function applyAllSettings() {
     try {
+        // Safety check for chrome storage API
+        if (!chrome?.storage?.local) {
+            console.warn('Chrome storage API not available');
+            return;
+        }
+        
         const settings = await chrome.storage.local.get(null);
         Object.entries(settings).forEach(([key, value]) => {
             if (YOUTUBE_SELECTORS[key]) {
@@ -95,34 +103,38 @@ function updateSetting(settingName, value) {
 }
 
 // Message listener for popup & background
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    try {
-        switch (message.type) {
-            case "updateSwitch":
-                if (message.switchName && message.value !== undefined) {
-                    updateSetting(message.switchName, message.value);
-                    sendResponse({ status: "success" });
-                }
-                break;
+if (chrome?.runtime?.onMessage) {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        try {
+            switch (message.type) {
+                case "updateSwitch":
+                    if (message.switchName && message.value !== undefined) {
+                        updateSetting(message.switchName, message.value);
+                        sendResponse({ status: "success" });
+                    }
+                    break;
 
-            case "applySettings":
-                applyAllSettings().then(() => {
-                    sendResponse({ status: "settings_applied" });
-                }).catch((error) => {
-                    console.error('Error applying settings via message:', error);
-                    sendResponse({ error: error.message });
-                });
-                return true; // Keep message channel open for async response
+                case "applySettings":
+                    applyAllSettings().then(() => {
+                        sendResponse({ status: "settings_applied" });
+                    }).catch((error) => {
+                        console.error('Error applying settings via message:', error);
+                        sendResponse({ error: error.message });
+                    });
+                    return true; // Keep message channel open for async response
 
-            default:
-                sendResponse({ status: "unknown_message_type" });
+                default:
+                    sendResponse({ status: "unknown_message_type" });
+            }
+        } catch (error) {
+            console.error('Error in message listener:', error);
+            sendResponse({ error: error.message });
         }
-    } catch (error) {
-        console.error('Error in message listener:', error);
-        sendResponse({ error: error.message });
-    }
-    return true;
-});
+        return true;
+    });
+} else {
+    console.warn('Chrome runtime messaging not available');
+}
 
 // Debounce function
 function debounce(func, wait) {
@@ -157,17 +169,43 @@ const observer = new MutationObserver((mutations) => {
     }
 });
 
-observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['style', 'class']
-});
+// Only observe if document.body exists
+if (document.body) {
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+    });
+} else {
+    // Wait for body to be available
+    const bodyObserver = new MutationObserver(() => {
+        if (document.body) {
+            bodyObserver.disconnect();
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['style', 'class']
+            });
+        }
+    });
+    bodyObserver.observe(document.documentElement, { childList: true, subtree: true });
+}
 
 // Apply settings immediately on load
-applyAllSettings().catch(err => {
-    console.error('Error applying initial settings:', err);
-});
+function initializeSettings() {
+    applyAllSettings().catch(err => {
+        console.error('Error applying initial settings:', err);
+    });
+}
+
+// Wait for document to be ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeSettings);
+} else {
+    initializeSettings();
+}
 
 // SPA navigation handling
 let lastUrl = location.href;
@@ -189,6 +227,11 @@ if (titleElement) {
     });
 }
 
-window.addEventListener('unload', () => {
-    observer.disconnect();
-});
+// Cleanup on unload
+if (typeof window !== 'undefined') {
+    window.addEventListener('unload', () => {
+        observer.disconnect();
+    });
+}
+
+} // End of safety check
