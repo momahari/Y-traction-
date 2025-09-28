@@ -113,7 +113,7 @@ function updateWebsiteBlocking(websites, enabled) {
         action: {
             type: "redirect",
             redirect: {
-                url: `data:text/html,<html><head><title>Blocked</title><style>body{font-family:Arial,sans-serif;text-align:center;padding:50px;background:#f5f5f5;}</style></head><body><h1>🚫 Website Blocked</h1><p>This website (${website}) has been blocked to help you stay focused.</p><p><small>Y-Traction Extension</small></p></body></html>`
+                url: `data:text/html,<html><head><title>🚫 Blocked by Y-Traction</title><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;text-align:center;padding:80px 20px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;margin:0;min-height:calc(100vh-160px);} .container{max-width:500px;margin:0 auto;background:rgba(255,255,255,0.1);padding:40px;border-radius:20px;backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,0.3);} h1{font-size:3rem;margin-bottom:20px;} p{font-size:1.2rem;margin-bottom:15px;opacity:0.9;} .website{font-weight:bold;color:#ffd700;} .small{font-size:0.9rem;opacity:0.7;margin-top:30px;}</style></head><body><div class="container"><h1>🚫</h1><h2>Website Blocked</h2><p>Access to <span class="website">${website}</span> has been blocked to help you stay focused and productive.</p><p>Take this time to work on what truly matters!</p><div class="small">Blocked by Y-Traction Extension</div></div></body></html>`
             }
         },
         condition: {
