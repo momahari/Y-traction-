@@ -22,71 +22,200 @@
         </button>
     </header>
     
-    <div class="container">
-        <div class="features-list">
-            <div class="feature-item">
-                <input class="form-check-input" type="checkbox" id="flexSwitchCheckReverse">
-                <label class="form-check-label" for="flexSwitchCheckReverse">
-                    Hide Youtube <i class="fab fa-youtube"></i>
-                </label>
+    <!-- Tab Navigation -->
+    <nav class="tab-navigation">
+        <button class="tab-btn active" data-tab="focus">
+            <i class="fas fa-clock"></i> Focus
+        </button>
+        <button class="tab-btn" data-tab="youtube">
+            <i class="fab fa-youtube"></i> YouTube
+        </button>
+        <button class="tab-btn" data-tab="blocker">
+            <i class="fas fa-shield-alt"></i> Blocker
+        </button>
+    </nav>
+
+    <!-- Focus Mode Tab -->
+    <div class="tab-content active" id="focus-tab">
+        <div class="timer-container">
+            <!-- Circular Progress Bar -->
+            <div class="progress-container">
+                <svg class="progress-ring" width="120" height="120">
+                    <circle class="progress-ring-circle-bg" cx="60" cy="60" r="52" />
+                    <circle class="progress-ring-circle" cx="60" cy="60" r="52" />
+                </svg>
+                <div class="progress-content">
+                    <div class="timer-display">
+                        <span id="timeLeft">00:00</span>
+                    </div>
+                    <div class="timer-mode">
+                        <span id="currentMode">Focus</span>
+                    </div>
+                </div>
             </div>
             
-            <div class="feature-item">
-                <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault1">
-                <label class="form-check-label" for="flexSwitchCheckDefault1">
-                    Hide ads
-                </label>
+            <!-- Timer Settings -->
+            <div class="timer-settings">
+                <div class="setting-group">
+                    <label>Focus Time</label>
+                    <div class="time-input-group">
+                        <input type="number" id="focusMinutes" placeholder="25" min="1" max="120" value="25">
+                        <span class="input-label">min</span>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <label>Rest Time</label>
+                    <div class="time-input-group">
+                        <input type="number" id="restMinutes" placeholder="5" min="1" max="60" value="5">
+                        <span class="input-label">min</span>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <label>Cycles</label>
+                    <div class="time-input-group">
+                        <input type="number" id="totalCycles" placeholder="4" min="1" max="12" value="4">
+                        <span class="input-label">cycles</span>
+                    </div>
+                </div>
             </div>
             
-            <div class="feature-item">
-                <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault2">
-                <label class="form-check-label" for="flexSwitchCheckDefault2">
-                    Hide proposition
-                </label>
+            <!-- Cycle Progress -->
+            <div class="cycle-progress">
+                <div class="cycle-info">
+                    <span>Cycle: <span id="currentCycle">1</span> / <span id="totalCyclesDisplay">4</span></span>
+                </div>
+                <div class="cycle-dots">
+                    <span class="cycle-dot active" id="dot-1"></span>
+                    <span class="cycle-dot" id="dot-2"></span>
+                    <span class="cycle-dot" id="dot-3"></span>
+                    <span class="cycle-dot" id="dot-4"></span>
+                </div>
             </div>
             
-            <div class="feature-item">
-                <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault3">
-                <label class="form-check-label" for="flexSwitchCheckDefault3">
-                    Hide playlistes
-                </label>
-            </div>
-            
-            <div class="feature-item">
-                <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault6">
-                <label class="form-check-label" for="flexSwitchCheckDefault6">
-                    Hide shorts
-                </label>
-            </div>
-            
-            <div class="feature-item">
-                <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault4">
-                <label class="form-check-label" for="flexSwitchCheckDefault4">
-                    Hide comments
-                </label>
-            </div>
-            
-            <div class="feature-item">
-                <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault5">
-                <label class="form-check-label" for="flexSwitchCheckDefault5">
-                    Hide sidebar
-                </label>
+            <!-- Control Buttons -->
+            <div class="control-buttons">
+                <button id="startTimer" class="primary-btn">
+                    <i class="fas fa-play"></i> Start
+                </button>
+                <button id="pauseTimer" class="secondary-btn" style="display: none;">
+                    <i class="fas fa-pause"></i> Pause
+                </button>
+                <button id="resetTimer" class="secondary-btn">
+                    <i class="fas fa-stop"></i> Reset
+                </button>
             </div>
         </div>
     </div>
 
-    <div class="timer-container">
-        <div class="input-row">
-            <input type="number" id="hours" placeholder="Hours" min="0" max="15">
-            <input type="number" id="minutes" placeholder="Minutes" min="0" max="59">
+    <!-- YouTube Settings Tab -->
+    <div class="tab-content" id="youtube-tab">
+        <div class="container">
+            <div class="features-list">
+                <div class="feature-item">
+                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckReverse">
+                    <label class="form-check-label" for="flexSwitchCheckReverse">
+                        Hide Youtube <i class="fab fa-youtube"></i>
+                    </label>
+                </div>
+                
+                <div class="feature-item">
+                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault1">
+                    <label class="form-check-label" for="flexSwitchCheckDefault1">
+                        Hide ads
+                    </label>
+                </div>
+                
+                <div class="feature-item">
+                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault2">
+                    <label class="form-check-label" for="flexSwitchCheckDefault2">
+                        Hide proposition
+                    </label>
+                </div>
+                
+                <div class="feature-item">
+                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault3">
+                    <label class="form-check-label" for="flexSwitchCheckDefault3">
+                        Hide playlistes
+                    </label>
+                </div>
+                
+                <div class="feature-item">
+                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault6">
+                    <label class="form-check-label" for="flexSwitchCheckDefault6">
+                        Hide shorts
+                    </label>
+                </div>
+                
+                <div class="feature-item">
+                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault4">
+                    <label class="form-check-label" for="flexSwitchCheckDefault4">
+                        Hide comments
+                    </label>
+                </div>
+                
+                <div class="feature-item">
+                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault5">
+                    <label class="form-check-label" for="flexSwitchCheckDefault5">
+                        Hide sidebar
+                    </label>
+                </div>
+            </div>
         </div>
-        <div class="timer-display">
-            Time Left: <span id="timeLeft">00:00:00</span>
+    </div>
+
+    <!-- Website Blocker Tab -->
+    <div class="tab-content" id="blocker-tab">
+        <div class="container">
+            <!-- Quick Block Presets -->
+            <div class="blocker-section">
+                <h3 class="section-title">Quick Block</h3>
+                <div class="preset-buttons">
+                    <button class="preset-btn" data-preset="social">
+                        <i class="fas fa-users"></i> Social Media
+                    </button>
+                    <button class="preset-btn" data-preset="entertainment">
+                        <i class="fas fa-play"></i> Entertainment
+                    </button>
+                    <button class="preset-btn" data-preset="news">
+                        <i class="fas fa-newspaper"></i> News
+                    </button>
+                    <button class="preset-btn" data-preset="shopping">
+                        <i class="fas fa-shopping-cart"></i> Shopping
+                    </button>
+                </div>
+            </div>
+
+            <!-- Custom Website Blocking -->
+            <div class="blocker-section">
+                <h3 class="section-title">Custom Websites</h3>
+                <div class="add-website">
+                    <input type="text" id="websiteInput" placeholder="Enter website (e.g., facebook.com)" class="website-input">
+                    <button id="addWebsiteBtn" class="add-btn">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </div>
+                <div id="blockedWebsitesList" class="blocked-list"></div>
+            </div>
+
+            <!-- Blocking Status -->
+            <div class="blocker-section">
+                <div class="feature-item">
+                    <input class="form-check-input" type="checkbox" id="blockingEnabled">
+                    <label class="form-check-label" for="blockingEnabled">
+                        <i class="fas fa-shield-alt"></i> Enable Website Blocking
+                    </label>
+                </div>
+                <div class="blocking-status" id="blockingStatus">
+                    <span class="status-text">Blocking: <span id="blockedCount">0</span> websites</span>
+                </div>
+            </div>
         </div>
-        <div class="input-row">
-            <button id="startTimer">Start Timer</button>
-            <button id="resetTimer">Reset</button>
-        </div>
+    </div>
+
+    <!-- Feedback link at the bottom -->
+    <div class="footer">
         <a href="https://forms.gle/EW1Xk7eLfy2uToJV6" target="_blank">Give us a feedback</a>
     </div>
     

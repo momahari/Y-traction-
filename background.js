@@ -1,7 +1,7 @@
 let timerCheckInterval = null;
 
-// Injects alert into active tab
-function showTimerAlert() {
+// Injects alert into active tab for timer completion
+function showTimerAlert(mode, cycleOrTotal) {
     if (document.getElementById('youtube-timer-overlay')) return;
 
     const overlay = document.createElement('div');
@@ -10,65 +10,121 @@ function showTimerAlert() {
         position: fixed;
         top: 0; left: 0;
         width: 100%; height: 100%;
-        background: rgba(0,0,0,0.7);
+        background: rgba(0,0,0,0.8);
         display: flex;
         justify-content: center;
         align-items: center;
         z-index: 999999;
+        backdrop-filter: blur(5px);
     `;
 
     const alertBox = document.createElement('div');
+    let title, message, emoji, bgColor;
+
+    if (mode === 'focus') {
+        title = 'Focus Session Complete!';
+        message = `Great job! You've completed cycle ${cycleOrTotal}. Time for a well-deserved break!`;
+        emoji = '🎯';
+        bgColor = '#8b5cf6';
+    } else if (mode === 'complete') {
+        title = 'All Cycles Complete!';
+        message = `Congratulations! You've finished all ${cycleOrTotal} cycles. Excellent work staying focused!`;
+        emoji = '🏆';
+        bgColor = '#10b981';
+    } else {
+        // Fallback
+        title = 'Session Complete!';
+        message = 'Great work on your focus session!';
+        emoji = '✅';
+        bgColor = '#8b5cf6';
+    }
+
     alertBox.style.cssText = `
         background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         text-align: center;
         max-width: 400px;
         width: 90%;
+        border: 2px solid ${bgColor};
     `;
+
     alertBox.innerHTML = `
-        <h2 style="margin-bottom:15px;">Time's Up!</h2>
-        <p>Your browsing timer has ended.</p>
+        <div style="font-size: 2rem; margin-bottom: 10px;">
+            ${emoji}
+        </div>
+        <h2 style="margin-bottom:15px; color: ${bgColor};">${title}</h2>
+        <p style="margin-bottom: 20px; color: #666;">${message}</p>
         <button id="timer-close-btn" style="
-            background: #8b5cf6; color: white;
-            border: none; padding: 10px 20px;
-            border-radius: 4px; cursor: pointer;
-        ">Close</button>
+            background: ${bgColor}; color: white;
+            border: none; padding: 12px 24px;
+            border-radius: 6px; cursor: pointer;
+            font-weight: 500; font-size: 1rem;
+            transition: all 0.3s ease;
+        ">Continue</button>
     `;
 
     overlay.appendChild(alertBox);
     document.body.appendChild(overlay);
 
-    document.getElementById('timer-close-btn').addEventListener('click', () => overlay.remove());
+    // Add hover effect
+    const button = document.getElementById('timer-close-btn');
+    button.addEventListener('mouseenter', () => {
+        button.style.transform = 'translateY(-2px)';
+        button.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+    });
+    button.addEventListener('mouseleave', () => {
+        button.style.transform = 'translateY(0)';
+        button.style.boxShadow = 'none';
+    });
+
+    button.addEventListener('click', () => overlay.remove());
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 
-    new Audio('data:audio/wav;base64,...').play().catch(() => {});
+    // Play notification sound
+    try {
+        new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcBSmA0O/Mdiw').play();
+    } catch (e) {}
 }
 
-// Timer check
+// Enhanced timer check with more granular state management
 function checkTimer() {
-    chrome.storage.local.get(['timerEndTime', 'timerRunning'], (result) => {
-        if (result.timerRunning && result.timerEndTime && Date.now() >= result.timerEndTime) {
+    chrome.storage.local.get(['timerState'], (result) => {
+        if (!result.timerState) return;
+        
+        const timerState = result.timerState;
+        if (timerState.isRunning && timerState.endTime && Date.now() >= timerState.endTime) {
+            // Timer has completed, but let popup handle the transition
+            // This is a backup check in case popup is closed
+            
+            const mode = timerState.mode || 'focus';
+            const cycle = timerState.currentCycle || 1;
+            
+            // Create appropriate notification
+            const notificationTitle = mode === 'focus' ? 'Focus Complete!' : 'Break Complete!';
+            const notificationMessage = mode === 'focus' ? 
+                `Cycle ${cycle} finished! Time for a break 🎯` : 
+                'Break time over! Ready to focus? ☕';
+            
             chrome.notifications.create({
                 type: 'basic',
                 iconUrl: 'icons/notification48.png',
-                title: 'Time\'s Up!',
-                message: 'Your browsing timer has ended!',
+                title: notificationTitle,
+                message: notificationMessage,
                 priority: 2
             });
 
+            // Show alert on YouTube pages
             chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
                 if (tabs[0]?.url?.includes('youtube.com')) {
                     chrome.scripting.executeScript({
                         target: { tabId: tabs[0].id },
-                        function: showTimerAlert
+                        function: showTimerAlert,
+                        args: [mode, cycle]
                     }).catch(err => console.warn('Injection failed:', err));
                 }
             });
-
-            clearInterval(timerCheckInterval);
-            chrome.storage.local.remove(['timerEndTime', 'timerRunning']);
         }
     });
 }
@@ -92,18 +148,67 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     switch (message.type) {
         case "startTimer":
             if (timerCheckInterval) clearInterval(timerCheckInterval);
-            timerCheckInterval = setInterval(checkTimer, 1000);
-            chrome.storage.local.set({
-                timerEndTime: message.endTime,
-                timerRunning: true
-            });
+            timerCheckInterval = setInterval(checkTimer, 5000); // Check every 5 seconds
             sendResponse({ status: "Timer started" });
             break;
 
         case "clearTimer":
             if (timerCheckInterval) clearInterval(timerCheckInterval);
-            chrome.storage.local.remove(['timerEndTime', 'timerRunning']);
+            chrome.storage.local.remove(['timerState', 'timerEndTime', 'timerRunning']);
             sendResponse({ status: "Timer cleared" });
+            break;
+
+        case "timerComplete":
+            // Handle timer completion notification - only for focus sessions
+            if (message.mode === 'focus') {
+                const cycle = message.cycle || 1;
+                
+                chrome.notifications.create({
+                    type: 'basic',
+                    iconUrl: 'icons/notification48.png',
+                    title: '🎯 Focus Complete!',
+                    message: `Great work! Cycle ${cycle} finished. Time for a break!`,
+                    priority: 2
+                });
+
+                // Show alert on active YouTube tab
+                chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+                    if (tabs[0]?.url?.includes('youtube.com')) {
+                        chrome.scripting.executeScript({
+                            target: { tabId: tabs[0].id },
+                            function: showTimerAlert,
+                            args: ['focus', cycle]
+                        }).catch(err => console.warn('Injection failed:', err));
+                    }
+                });
+            }
+            sendResponse({ status: "Timer completion handled" });
+            break;
+
+        case "allCyclesComplete":
+            // Handle all cycles completion
+            const totalCycles = message.totalCycles || 4;
+            
+            chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'icons/notification48.png',
+                title: '🏆 All Cycles Complete!',
+                message: `Congratulations! You've completed all ${totalCycles} cycles. Great job staying focused!`,
+                priority: 2
+            });
+
+            // Show completion alert on active tab
+            chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+                if (tabs[0]?.url?.includes('youtube.com')) {
+                    chrome.scripting.executeScript({
+                        target: { tabId: tabs[0].id },
+                        function: showTimerAlert,
+                        args: ['complete', totalCycles]
+                    }).catch(err => console.warn('Injection failed:', err));
+                }
+            });
+
+            sendResponse({ status: "Cycles completion handled" });
             break;
 
         case "updateSwitch":
@@ -147,15 +252,21 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.storage.local.remove(['timerEndTime', 'timerRunning']);
+    // Clean up old timer data on install
+    chrome.storage.local.remove(['timerEndTime', 'timerRunning', 'timerState']);
 });
 
 chrome.runtime.onStartup.addListener(() => {
-    chrome.storage.local.get(['timerEndTime', 'timerRunning'], (result) => {
-        if (result.timerRunning && result.timerEndTime && Date.now() < result.timerEndTime) {
-            timerCheckInterval = setInterval(checkTimer, 1000);
-        } else {
-            chrome.storage.local.remove(['timerEndTime', 'timerRunning']);
+    // Check for existing timer state on startup
+    chrome.storage.local.get(['timerState'], (result) => {
+        if (result.timerState && result.timerState.isRunning && result.timerState.endTime) {
+            if (Date.now() < result.timerState.endTime) {
+                // Timer still running, start background check
+                timerCheckInterval = setInterval(checkTimer, 5000);
+            } else {
+                // Timer expired while browser was closed
+                chrome.storage.local.remove(['timerState']);
+            }
         }
     });
 });

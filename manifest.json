@@ -22,7 +22,8 @@
     "activeTab",
     "storage",
     "notifications",
-    "webNavigation"
+    "webNavigation",
+    "declarativeNetRequest"
     ],
     "host_permissions": [
         "https://*.youtube.com/*",
