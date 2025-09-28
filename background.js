@@ -88,77 +88,6 @@ function showTimerAlert(mode, cycleOrTotal) {
     } catch (e) {}
 }
 
-// Website blocking functionality
-let blockedWebsites = [];
-let blockingEnabled = false;
-
-function updateWebsiteBlocking(websites, enabled) {
-    console.log('Updating website blocking:', { websites, enabled });
-    blockedWebsites = websites || [];
-    blockingEnabled = enabled || false;
-    
-    if (!blockingEnabled || blockedWebsites.length === 0) {
-        console.log('Clearing blocking rules...');
-        // Clear all blocking rules
-        chrome.declarativeNetRequest?.updateDynamicRules({
-            removeRuleIds: Array.from({length: 1000}, (_, i) => i + 1)
-        }).then(() => {
-            console.log('Blocking rules cleared successfully');
-        }).catch(err => {
-            console.warn('Failed to clear blocking rules:', err);
-        });
-        return;
-    }
-
-    // Create blocking rules
-    const rules = blockedWebsites.map((website, index) => ({
-        id: index + 1,
-        priority: 1,
-        action: {
-            type: "redirect",
-            redirect: {
-                url: `data:text/html,<html><head><title>🚫 Blocked by Y-Traction</title><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;text-align:center;padding:80px 20px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;margin:0;min-height:calc(100vh-160px);} .container{max-width:500px;margin:0 auto;background:rgba(255,255,255,0.1);padding:40px;border-radius:20px;backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,0.3);} h1{font-size:3rem;margin-bottom:20px;} p{font-size:1.2rem;margin-bottom:15px;opacity:0.9;} .website{font-weight:bold;color:#ffd700;} .small{font-size:0.9rem;opacity:0.7;margin-top:30px;}</style></head><body><div class="container"><h1>🚫</h1><h2>Website Blocked</h2><p>Access to <span class="website">${website}</span> has been blocked to help you stay focused and productive.</p><p>Take this time to work on what truly matters!</p><div class="small">Blocked by Y-Traction Extension</div></div></body></html>`
-            }
-        },
-        condition: {
-            urlFilter: `*://*.${website}/*`,
-            resourceTypes: ["main_frame"]
-        }
-    }));
-
-    console.log('Creating blocking rules:', rules);
-
-    // Update blocking rules
-    chrome.declarativeNetRequest?.updateDynamicRules({
-        removeRuleIds: Array.from({length: 1000}, (_, i) => i + 1),
-        addRules: rules
-    }).then(() => {
-        console.log('Blocking rules updated successfully');
-    }).catch(err => {
-        console.warn('Failed to update blocking rules:', err);
-        console.log('Attempting alternative blocking method...');
-        // Fallback: use webRequest blocking
-        useWebRequestBlocking(websites, enabled);
-    });
-}
-
-function useWebRequestBlocking(websites, enabled) {
-    // Alternative blocking method using webRequest
-    if (chrome.webRequest) {
-        const urls = websites.map(site => `*://*.${site}/*`);
-        
-        if (enabled && urls.length > 0) {
-            chrome.webRequest.onBeforeRequest.addListener(
-                function(details) {
-                    return {cancel: true};
-                },
-                {urls: urls},
-                ["blocking"]
-            );
-        }
-    }
-}
-
 // Enhanced timer check with more granular state management
 function checkTimer() {
     chrome.storage.local.get(['timerState'], (result) => {
@@ -283,9 +212,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             break;
 
         case "updateBlockingRules":
-            // Handle website blocking rules
-            updateWebsiteBlocking(message.websites, message.enabled);
-            sendResponse({ status: "Blocking rules updated" });
+            // Website blocking is now handled by content script injection
+            // Just save the settings for the content script to use
+            sendResponse({ status: "Blocking settings updated" });
             break;
 
         case "updateSwitch":
@@ -331,13 +260,6 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 chrome.runtime.onInstalled.addListener(() => {
     // Clean up old timer data on install
     chrome.storage.local.remove(['timerEndTime', 'timerRunning', 'timerState']);
-    
-    // Initialize website blocking
-    chrome.storage.local.get(['blockedWebsites', 'blockingEnabled'], (result) => {
-        if (result.blockedWebsites && result.blockingEnabled) {
-            updateWebsiteBlocking(result.blockedWebsites, result.blockingEnabled);
-        }
-    });
 });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -351,13 +273,6 @@ chrome.runtime.onStartup.addListener(() => {
                 // Timer expired while browser was closed
                 chrome.storage.local.remove(['timerState']);
             }
-        }
-    });
-    
-    // Initialize website blocking on startup
-    chrome.storage.local.get(['blockedWebsites', 'blockingEnabled'], (result) => {
-        if (result.blockedWebsites && result.blockingEnabled) {
-            updateWebsiteBlocking(result.blockedWebsites, result.blockingEnabled);
         }
     });
 });

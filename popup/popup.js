@@ -661,25 +661,15 @@ function updateBlockingStatus() {
 }
 
 function updateBlockingRules() {
-    // Send message to background script to handle blocking
-    chrome.runtime.sendMessage({
-        type: "updateBlockingRules",
-        websites: blockedWebsites,
-        enabled: blockingEnabled
-    }, (response) => {
-        if (chrome.runtime.lastError) {
-            console.warn('Failed to update blocking rules:', chrome.runtime.lastError);
-        }
-    });
+    // Website blocking is now handled by content script injection
+    // The blocker.js content script reads directly from storage
+    // No need to send complex messages to background script
 }
 
 function saveBlockingSettings() {
     chrome.storage.local.set({
         blockedWebsites: blockedWebsites,
         blockingEnabled: blockingEnabled
-    }, () => {
-        // Update blocking rules after saving
-        updateBlockingRules();
     });
 }
 

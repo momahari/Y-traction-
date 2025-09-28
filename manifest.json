@@ -33,6 +33,12 @@
             "matches": ["https://*.youtube.com/*"],
             "js": ["content.js"],
             "run_at": "document_end"
+        },
+        {
+            "matches": ["<all_urls>"],
+            "js": ["blocker.js"],
+            "run_at": "document_start",
+            "all_frames": true
         }
     ],
     "web_accessible_resources": [
