@@ -138,22 +138,6 @@ _Coming soon - Extension pending review_
 - `webNavigation`: Detect navigation for website blocking
 - `<all_urls>`: Block websites across all domains
 
-### Files Structure
-
-```
-Y-Traction/
-├── manifest.json          # Extension configuration
-├── background.js          # Service worker for timer and notifications
-├── content.js            # YouTube DOM manipulation
-├── blocker.js            # Website blocking functionality
-├── popup/
-│   ├── popup.html        # Extension interface
-│   ├── popup.css         # Styling and themes
-│   └── popup.js          # UI logic and interactions
-├── icons/                # Extension icons
-└── README.md            # This file
-```
-
 ## 🤝 Contributing
 
 We welcome contributions! Here's how you can help:
