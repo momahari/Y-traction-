@@ -15,7 +15,7 @@ Y-Traction is a comprehensive Chrome extension designed to help you stay focused
 - **Customizable Timer**: Set focus sessions from 1-60 minutes
 - **Visual Progress**: Beautiful circular progress indicator
 - **Break Reminders**: Automatic break notifications between focus cycles
-- **Session Tracking**: Keep track of completed focus sessions
+- **Session Tracking**: Keep track of completed focus sessions and review your productivity stats over time
 - **Smart Notifications**: Non-intrusive notifications only when needed
 
 ### 📺 **YouTube Content Control**

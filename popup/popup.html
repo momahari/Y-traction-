@@ -229,8 +229,24 @@
             </div>
             <div class="modal-body">
                 <p>Set a password to protect your blocked websites list from changes:</p>
-                <input type="password" id="newPassword" placeholder="Enter password (min 4 characters)" class="password-input">
-                <input type="password" id="confirmPassword" placeholder="Confirm password" class="password-input">
+                <div class="password-input-container">
+                    <input type="password" id="newPassword" placeholder="Enter password (min 4 characters)" class="password-input">
+                    <button type="button" class="password-toggle" data-target="newPassword">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+                <div class="password-input-container">
+                    <input type="password" id="confirmPassword" placeholder="Confirm password" class="password-input">
+                    <button type="button" class="password-toggle" data-target="confirmPassword">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
                 <div id="passwordSetupError" class="password-error" style="display: none;">
                     <i class="fas fa-exclamation-triangle"></i> <span id="passwordSetupErrorText">Error message</span>
                 </div>
@@ -251,7 +267,15 @@
             </div>
             <div class="modal-body">
                 <p id="passwordPromptText">Enter your password to modify blocked websites:</p>
-                <input type="password" id="passwordPrompt" placeholder="Enter password" class="password-input">
+                <div class="password-input-container">
+                    <input type="password" id="passwordPrompt" placeholder="Enter password" class="password-input">
+                    <button type="button" class="password-toggle" data-target="passwordPrompt">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
                 <div id="passwordError" class="password-error" style="display: none;">
                     <i class="fas fa-exclamation-triangle"></i> Incorrect password
                 </div>

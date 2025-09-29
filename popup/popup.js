@@ -547,7 +547,7 @@ function addWebsite() {
 
     // Check password protection before adding
     if (passwordProtection) {
-        passwordProtection.requirePassword('add').then(allowed => {
+        passwordProtection.requirePassword('add', 'Enter password to add website:', (allowed) => {
             if (!allowed) return;
 
             if (!blockedWebsites.includes(website)) {
@@ -581,7 +581,7 @@ function addWebsite() {
 function removeWebsite(website) {
     // Check password protection before removing
     if (passwordProtection) {
-        passwordProtection.requirePassword('remove').then(allowed => {
+        passwordProtection.requirePassword('remove', 'Enter password to remove website:', (allowed) => {
             if (!allowed) return;
 
             const index = blockedWebsites.indexOf(website);
@@ -614,7 +614,7 @@ function togglePreset(presetName, button) {
 
     // Check password protection before modifying preset
     if (passwordProtection) {
-        passwordProtection.requirePassword('preset').then(allowed => {
+        passwordProtection.requirePassword('preset', 'Enter password to modify preset:', (allowed) => {
             if (!allowed) return;
 
             if (isActive) {
@@ -922,16 +922,16 @@ class PasswordProtection {
         }
     }
 
-    async handleProtectionButton() {
-        const isProtected = await this.isPasswordProtectionEnabled();
-        
-        if (isProtected) {
-            // Remove protection - require password first
-            this.promptPassword('remove', 'Enter password to remove protection:');
-        } else {
-            // Add protection - show setup modal
-            this.showSetupModal();
-        }
+    handleProtectionButton() {
+        this.isPasswordProtectionEnabled((isProtected) => {
+            if (isProtected) {
+                // Remove protection - require password first
+                this.promptPassword('remove', 'Enter password to remove protection:');
+            } else {
+                // Add protection - show setup modal
+                this.showSetupModal();
+            }
+        });
     }
 
     showSetupModal() {
@@ -1157,10 +1157,48 @@ class PasswordProtection {
 // Initialize password protection
 let passwordProtection;
 
+// Password visibility toggle functionality
+function initPasswordToggle() {
+    const toggleButtons = document.querySelectorAll('.password-toggle');
+    
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const targetId = button.getAttribute('data-target');
+            const passwordInput = document.getElementById(targetId);
+            
+            if (passwordInput) {
+                const isPassword = passwordInput.type === 'password';
+                passwordInput.type = isPassword ? 'text' : 'password';
+                
+                // Update button appearance
+                if (isPassword) {
+                    button.classList.add('hidden');
+                    button.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94l11.88 11.88z"></path>
+                            <path d="M1 1l22 22"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    `;
+                } else {
+                    button.classList.remove('hidden');
+                    button.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    `;
+                }
+            }
+        });
+    });
+}
+
 // Initialize blocker when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
     initWebsiteBlocker();
     passwordProtection = new PasswordProtection();
+    initPasswordToggle();
 });
 
 // Initialize timer when DOM is loaded
