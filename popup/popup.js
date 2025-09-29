@@ -883,19 +883,44 @@ class PasswordProtection {
         }
     }
 
-    async loadPasswordState() {
-        try {
-            const result = await chrome.storage.local.get(['blockerPassword', 'passwordProtectionEnabled']);
+    loadPasswordState() {
+        console.log('Loading password state...');
+        chrome.storage.local.get(['blockerPassword', 'passwordProtectionEnabled'], (result) => {
+            if (chrome.runtime.lastError) {
+                console.error('Error loading password state:', chrome.runtime.lastError);
+                return;
+            }
+            
+            console.log('Raw storage result:', result);
             const hasPassword = !!result.blockerPassword;
             const isEnabled = result.passwordProtectionEnabled !== false;
-            this.updateUI(hasPassword && isEnabled);
-        } catch (error) {
-            console.error('Error loading password state:', error);
-        }
+            const finalState = hasPassword && isEnabled;
+            console.log('Password state loaded - hasPassword:', hasPassword, 'isEnabled:', isEnabled, 'finalState:', finalState);
+            this.updateUI(finalState);
+        });
+    }
+
+    // Add a test method to manually clear protection
+    clearPasswordProtection() {
+        console.log('Manual clear of password protection...');
+        chrome.storage.local.remove(['blockerPassword', 'passwordSalt', 'passwordProtectionEnabled'], () => {
+            if (chrome.runtime.lastError) {
+                console.error('Error clearing password:', chrome.runtime.lastError);
+            } else {
+                console.log('Password protection manually cleared');
+                this.updateUI(false);
+                showMessage('Password protection manually removed', 'info');
+            }
+        });
     }
 
     updateUI(isProtected) {
         console.log('updateUI called with isProtected:', isProtected);
+        console.log('protectionBtn element:', this.protectionBtn);
+        console.log('blockedList element:', this.blockedList);
+        console.log('addWebsiteSection element:', this.addWebsiteSection);
+        console.log('presetButtons element:', this.presetButtons);
+        
         if (!this.protectionBtn) {
             console.log('protectionBtn element not found');
             return;
@@ -905,20 +930,47 @@ class PasswordProtection {
             console.log('Setting UI to protected state');
             this.protectionBtn.innerHTML = '<i class="fas fa-unlock"></i> Remove Password Protection';
             this.protectionBtn.classList.add('protected');
+            console.log('Button classes after adding protected:', this.protectionBtn.classList.toString());
             
             // Add protected styling to UI elements
-            if (this.blockedList) this.blockedList.classList.add('protected');
-            if (this.addWebsiteSection) this.addWebsiteSection.classList.add('protected');
-            if (this.presetButtons) this.presetButtons.classList.add('protected');
+            if (this.blockedList) {
+                this.blockedList.classList.add('protected');
+                console.log('Added protected class to blockedList');
+            }
+            if (this.addWebsiteSection) {
+                this.addWebsiteSection.classList.add('protected');
+                console.log('Added protected class to addWebsiteSection');
+            }
+            if (this.presetButtons) {
+                this.presetButtons.classList.add('protected');
+                console.log('Added protected class to presetButtons');
+            }
         } else {
             console.log('Setting UI to unprotected state');
             this.protectionBtn.innerHTML = '<i class="fas fa-lock"></i> Add Password Protection';
             this.protectionBtn.classList.remove('protected');
+            console.log('Button classes after removing protected:', this.protectionBtn.classList.toString());
             
             // Remove protected styling
-            if (this.blockedList) this.blockedList.classList.remove('protected');
-            if (this.addWebsiteSection) this.addWebsiteSection.classList.remove('protected');
-            if (this.presetButtons) this.presetButtons.classList.remove('protected');
+            if (this.blockedList) {
+                this.blockedList.classList.remove('protected');
+                console.log('Removed protected class from blockedList');
+            }
+            if (this.addWebsiteSection) {
+                this.addWebsiteSection.classList.remove('protected');
+                console.log('Removed protected class from addWebsiteSection');
+            }
+            if (this.presetButtons) {
+                this.presetButtons.classList.remove('protected');
+                console.log('Removed protected class from presetButtons');
+            }
+        }
+        
+        // Force a visual refresh
+        if (this.protectionBtn) {
+            this.protectionBtn.style.display = 'none';
+            this.protectionBtn.offsetHeight; // Force reflow
+            this.protectionBtn.style.display = '';
         }
     }
 
@@ -952,7 +1004,7 @@ class PasswordProtection {
         }
     }
 
-    async handleSetPassword() {
+    handleSetPassword() {
         const password = this.newPasswordInput ? this.newPasswordInput.value.trim() : '';
         const confirmPassword = this.confirmPasswordInput ? this.confirmPasswordInput.value.trim() : '';
 
@@ -971,23 +1023,26 @@ class PasswordProtection {
             return;
         }
 
-        try {
-            const salt = crypto.getRandomValues(new Uint8Array(16));
-            const hashedPassword = await this.hashPassword(password, salt);
-            
-            await chrome.storage.local.set({
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        this.hashPassword(password, salt).then(hashedPassword => {
+            chrome.storage.local.set({
                 blockerPassword: Array.from(hashedPassword),
                 passwordSalt: Array.from(salt),
                 passwordProtectionEnabled: true
+            }, () => {
+                if (chrome.runtime.lastError) {
+                    console.error('Error setting password:', chrome.runtime.lastError);
+                    this.showSetupError('Failed to set password');
+                } else {
+                    this.hideSetupModal();
+                    this.loadPasswordState(); // Refresh state after setting password
+                    showMessage('Password protection enabled', 'success');
+                }
             });
-
-            this.hideSetupModal();
-            this.updateUI(true);
-            showMessage('Password protection enabled', 'success');
-        } catch (error) {
-            console.error('Error setting password:', error);
+        }).catch(error => {
+            console.error('Error hashing password:', error);
             this.showSetupError('Failed to set password');
-        }
+        });
     }
 
     showSetupError(message) {
@@ -1003,6 +1058,7 @@ class PasswordProtection {
 
     verifyPassword(inputPassword, callback) {
         console.log('Verifying password...');
+        console.log('Input password length:', inputPassword.length);
         chrome.storage.local.get(['blockerPassword', 'passwordSalt'], (result) => {
             console.log('Storage result:', result);
             
@@ -1015,8 +1071,11 @@ class PasswordProtection {
             try {
                 const storedHash = new Uint8Array(result.blockerPassword);
                 const salt = new Uint8Array(result.passwordSalt);
+                console.log('Stored hash length:', storedHash.length);
+                console.log('Salt length:', salt.length);
                 
                 this.hashPassword(inputPassword, salt).then(inputHash => {
+                    console.log('Input hash computed, length:', inputHash.length);
                     const isValid = this.arraysEqual(storedHash, inputHash);
                     console.log('Password verification result:', isValid);
                     callback(isValid);
@@ -1079,20 +1138,46 @@ class PasswordProtection {
                 return;
             }
 
+            // Store the action before hiding modal (which resets pendingAction)
+            const actionToPerform = this.pendingAction;
+            console.log('Action to perform:', actionToPerform);
+            
             this.hidePasswordModal();
 
-            if (this.pendingAction === 'remove') {
-                console.log('Attempting to remove password protection...');
-                chrome.storage.local.remove(['blockerPassword', 'passwordSalt', 'passwordProtectionEnabled'], () => {
-                    if (chrome.runtime.lastError) {
-                        console.error('Error removing password:', chrome.runtime.lastError);
-                        showMessage('Failed to remove password protection', 'error');
-                    } else {
-                        console.log('Password protection data removed from storage');
-                        this.updateUI(false);
-                        showMessage('Password protection removed', 'info');
-                    }
+            if (actionToPerform === 'remove') {
+                console.log('Executing password removal...');
+                
+                // First check what's currently in storage
+                chrome.storage.local.get(['blockerPassword', 'passwordSalt', 'passwordProtectionEnabled'], (currentData) => {
+                    console.log('Current storage before removal:', currentData);
+                    
+                    // Now remove the password protection data
+                    chrome.storage.local.remove(['blockerPassword', 'passwordSalt', 'passwordProtectionEnabled'], () => {
+                        if (chrome.runtime.lastError) {
+                            console.error('Error removing password:', chrome.runtime.lastError);
+                            showMessage('Failed to remove password protection', 'error');
+                        } else {
+                            console.log('Password protection data removed from storage');
+                            
+                            // Verify removal by checking storage again
+                            chrome.storage.local.get(['blockerPassword', 'passwordSalt', 'passwordProtectionEnabled'], (verifyData) => {
+                                console.log('Storage after removal:', verifyData);
+                                
+                                // Force UI update
+                                this.updateUI(false);
+                                
+                                // Also reload state to be sure
+                                setTimeout(() => {
+                                    this.loadPasswordState();
+                                }, 100);
+                                
+                                showMessage('Password protection removed', 'success');
+                            });
+                        }
+                    });
                 });
+            } else {
+                console.log('No remove action found, actionToPerform was:', actionToPerform);
             }
         });
     }
@@ -1199,6 +1284,15 @@ document.addEventListener('DOMContentLoaded', () => {
     initWebsiteBlocker();
     passwordProtection = new PasswordProtection();
     initPasswordToggle();
+    
+    // Expose for debugging
+    window.debugPasswordProtection = passwordProtection;
+    window.clearPassword = () => {
+        if (passwordProtection) {
+            passwordProtection.clearPasswordProtection();
+        }
+    };
+    console.log('Password protection debugging available: window.debugPasswordProtection and window.clearPassword()');
 });
 
 // Initialize timer when DOM is loaded
