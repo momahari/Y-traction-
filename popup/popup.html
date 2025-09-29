@@ -210,8 +210,58 @@
                 <div class="blocking-status" id="blockingStatus">
                     <span class="status-text">Blocking: <span id="blockedCount">0</span> websites</span>
                 </div>
+                
+                <!-- Simple Password Protection Button -->
+                <div class="password-protection-container">
+                    <button id="passwordProtectionBtn" class="password-protection-btn">
+                        <i class="fas fa-lock"></i> Add Password Protection
+                    </button>
+                </div>
             </div>
         </div>
+    </div>
+
+    <!-- Password Setup Modal -->
+    <div id="passwordSetupModal" class="password-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4><i class="fas fa-shield-alt"></i> Set Password Protection</h4>
+            </div>
+            <div class="modal-body">
+                <p>Set a password to protect your blocked websites list from changes:</p>
+                <input type="password" id="newPassword" placeholder="Enter password (min 4 characters)" class="password-input">
+                <input type="password" id="confirmPassword" placeholder="Confirm password" class="password-input">
+                <div id="passwordSetupError" class="password-error" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> <span id="passwordSetupErrorText">Error message</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelSetupBtn" class="btn btn-secondary">Cancel</button>
+                <button id="confirmSetupBtn" class="btn btn-primary">Set Protection</button>
+            </div>
+        </div>
+        <div class="modal-backdrop"></div>
+    </div>
+
+    <!-- Password Verification Modal -->
+    <div id="passwordModal" class="password-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4><i class="fas fa-lock"></i> Password Required</h4>
+            </div>
+            <div class="modal-body">
+                <p id="passwordPromptText">Enter your password to modify blocked websites:</p>
+                <input type="password" id="passwordPrompt" placeholder="Enter password" class="password-input">
+                <div id="passwordError" class="password-error" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> Incorrect password
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelPasswordBtn" class="btn btn-secondary">Cancel</button>
+                <button id="confirmPasswordBtn" class="btn btn-primary">Confirm</button>
+            </div>
+        </div>
+        <div class="modal-backdrop"></div>
     </div>
 
     <!-- Feedback link at the bottom -->

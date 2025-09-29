@@ -545,28 +545,66 @@ function addWebsite() {
         return;
     }
 
-    if (!blockedWebsites.includes(website)) {
-        blockedWebsites.push(website);
-        saveBlockingSettings();
-        updateBlockedList();
-        updateBlockingStatus();
-        updatePresetButtons();
-        input.value = '';
-        showMessage(`${website} added to blocked list`, 'success');
+    // Check password protection before adding
+    if (passwordProtection) {
+        passwordProtection.requirePassword('add').then(allowed => {
+            if (!allowed) return;
+
+            if (!blockedWebsites.includes(website)) {
+                blockedWebsites.push(website);
+                saveBlockingSettings();
+                updateBlockedList();
+                updateBlockingStatus();
+                updatePresetButtons();
+                input.value = '';
+                showMessage(`${website} added to blocked list`, 'success');
+            } else {
+                showMessage('Website is already blocked', 'warning');
+            }
+        });
     } else {
-        showMessage('Website is already blocked', 'warning');
+        // Fallback if passwordProtection not ready
+        if (!blockedWebsites.includes(website)) {
+            blockedWebsites.push(website);
+            saveBlockingSettings();
+            updateBlockedList();
+            updateBlockingStatus();
+            updatePresetButtons();
+            input.value = '';
+            showMessage(`${website} added to blocked list`, 'success');
+        } else {
+            showMessage('Website is already blocked', 'warning');
+        }
     }
 }
 
 function removeWebsite(website) {
-    const index = blockedWebsites.indexOf(website);
-    if (index > -1) {
-        blockedWebsites.splice(index, 1);
-        saveBlockingSettings();
-        updateBlockedList();
-        updateBlockingStatus();
-        updatePresetButtons();
-        showMessage(`${website} removed from blocked list`, 'success');
+    // Check password protection before removing
+    if (passwordProtection) {
+        passwordProtection.requirePassword('remove').then(allowed => {
+            if (!allowed) return;
+
+            const index = blockedWebsites.indexOf(website);
+            if (index > -1) {
+                blockedWebsites.splice(index, 1);
+                saveBlockingSettings();
+                updateBlockedList();
+                updateBlockingStatus();
+                updatePresetButtons();
+                showMessage(`${website} removed from blocked list`, 'success');
+            }
+        });
+    } else {
+        // Fallback if passwordProtection not ready
+        const index = blockedWebsites.indexOf(website);
+        if (index > -1) {
+            blockedWebsites.splice(index, 1);
+            saveBlockingSettings();
+            updateBlockedList();
+            updateBlockingStatus();
+            updatePresetButtons();
+            showMessage(`${website} removed from blocked list`, 'success');
+        }
     }
 }
 
@@ -574,28 +612,63 @@ function togglePreset(presetName, button) {
     const presetWebsites = websitePresets[presetName] || [];
     const isActive = button.classList.contains('active');
 
-    if (isActive) {
-        // Remove preset websites
-        presetWebsites.forEach(website => {
-            const index = blockedWebsites.indexOf(website);
-            if (index > -1) {
-                blockedWebsites.splice(index, 1);
-            }
-        });
-        button.classList.remove('active');
-    } else {
-        // Add preset websites
-        presetWebsites.forEach(website => {
-            if (!blockedWebsites.includes(website)) {
-                blockedWebsites.push(website);
-            }
-        });
-        button.classList.add('active');
-    }
+    // Check password protection before modifying preset
+    if (passwordProtection) {
+        passwordProtection.requirePassword('preset').then(allowed => {
+            if (!allowed) return;
 
-    saveBlockingSettings();
-    updateBlockedList();
-    updateBlockingStatus();
+            if (isActive) {
+                // Remove preset websites
+                presetWebsites.forEach(website => {
+                    const index = blockedWebsites.indexOf(website);
+                    if (index > -1) {
+                        blockedWebsites.splice(index, 1);
+                    }
+                });
+                button.classList.remove('active');
+                showMessage(`${presetName} websites removed from blocked list`, 'info');
+            } else {
+                // Add preset websites
+                presetWebsites.forEach(website => {
+                    if (!blockedWebsites.includes(website)) {
+                        blockedWebsites.push(website);
+                    }
+                });
+                button.classList.add('active');
+                showMessage(`${presetName} websites added to blocked list`, 'success');
+            }
+
+            saveBlockingSettings();
+            updateBlockedList();
+            updateBlockingStatus();
+        });
+    } else {
+        // Fallback if passwordProtection not ready
+        if (isActive) {
+            // Remove preset websites
+            presetWebsites.forEach(website => {
+                const index = blockedWebsites.indexOf(website);
+                if (index > -1) {
+                    blockedWebsites.splice(index, 1);
+                }
+            });
+            button.classList.remove('active');
+            showMessage(`${presetName} websites removed from blocked list`, 'info');
+        } else {
+            // Add preset websites
+            presetWebsites.forEach(website => {
+                if (!blockedWebsites.includes(website)) {
+                    blockedWebsites.push(website);
+                }
+            });
+            button.classList.add('active');
+            showMessage(`${presetName} websites added to blocked list`, 'success');
+        }
+
+        saveBlockingSettings();
+        updateBlockedList();
+        updateBlockingStatus();
+    }
 }
 
 function updatePresetButtons() {
@@ -737,8 +810,358 @@ function showMessage(text, type = 'info') {
     }, 3000);
 }
 
+// Simplified Password Protection System
+class PasswordProtection {
+    constructor() {
+        this.pendingAction = null;
+        this.initElements();
+        this.attachEventListeners();
+        this.loadPasswordState();
+    }
+
+    initElements() {
+        this.protectionBtn = document.getElementById('passwordProtectionBtn');
+        this.setupModal = document.getElementById('passwordSetupModal');
+        this.verifyModal = document.getElementById('passwordModal');
+        this.newPasswordInput = document.getElementById('newPassword');
+        this.confirmPasswordInput = document.getElementById('confirmPassword');
+        this.confirmSetupBtn = document.getElementById('confirmSetupBtn');
+        this.cancelSetupBtn = document.getElementById('cancelSetupBtn');
+        this.setupError = document.getElementById('passwordSetupError');
+        this.setupErrorText = document.getElementById('passwordSetupErrorText');
+        this.passwordPrompt = document.getElementById('passwordPrompt');
+        this.passwordError = document.getElementById('passwordError');
+        this.confirmPasswordBtn = document.getElementById('confirmPasswordBtn');
+        this.cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
+        
+        // UI elements to protect
+        this.blockedList = document.getElementById('blockedWebsitesList');
+        this.addWebsiteSection = document.querySelector('.add-website');
+        this.presetButtons = document.querySelector('.preset-buttons');
+    }
+
+    attachEventListeners() {
+        if (this.protectionBtn) {
+            this.protectionBtn.addEventListener('click', () => this.handleProtectionButton());
+        }
+
+        if (this.confirmSetupBtn) {
+            this.confirmSetupBtn.addEventListener('click', () => this.handleSetPassword());
+        }
+
+        if (this.cancelSetupBtn) {
+            this.cancelSetupBtn.addEventListener('click', () => this.hideSetupModal());
+        }
+
+        if (this.confirmPasswordBtn) {
+            this.confirmPasswordBtn.addEventListener('click', () => this.handlePasswordConfirm());
+        }
+
+        if (this.cancelPasswordBtn) {
+            this.cancelPasswordBtn.addEventListener('click', () => this.hidePasswordModal());
+        }
+        
+        // Enter key support
+        if (this.newPasswordInput) {
+            this.newPasswordInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && this.confirmPasswordInput) {
+                    this.confirmPasswordInput.focus();
+                }
+            });
+        }
+
+        if (this.confirmPasswordInput) {
+            this.confirmPasswordInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.handleSetPassword();
+            });
+        }
+
+        if (this.passwordPrompt) {
+            this.passwordPrompt.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.handlePasswordConfirm();
+            });
+        }
+    }
+
+    async loadPasswordState() {
+        try {
+            const result = await chrome.storage.local.get(['blockerPassword', 'passwordProtectionEnabled']);
+            const hasPassword = !!result.blockerPassword;
+            const isEnabled = result.passwordProtectionEnabled !== false;
+            this.updateUI(hasPassword && isEnabled);
+        } catch (error) {
+            console.error('Error loading password state:', error);
+        }
+    }
+
+    updateUI(isProtected) {
+        console.log('updateUI called with isProtected:', isProtected);
+        if (!this.protectionBtn) {
+            console.log('protectionBtn element not found');
+            return;
+        }
+
+        if (isProtected) {
+            console.log('Setting UI to protected state');
+            this.protectionBtn.innerHTML = '<i class="fas fa-unlock"></i> Remove Password Protection';
+            this.protectionBtn.classList.add('protected');
+            
+            // Add protected styling to UI elements
+            if (this.blockedList) this.blockedList.classList.add('protected');
+            if (this.addWebsiteSection) this.addWebsiteSection.classList.add('protected');
+            if (this.presetButtons) this.presetButtons.classList.add('protected');
+        } else {
+            console.log('Setting UI to unprotected state');
+            this.protectionBtn.innerHTML = '<i class="fas fa-lock"></i> Add Password Protection';
+            this.protectionBtn.classList.remove('protected');
+            
+            // Remove protected styling
+            if (this.blockedList) this.blockedList.classList.remove('protected');
+            if (this.addWebsiteSection) this.addWebsiteSection.classList.remove('protected');
+            if (this.presetButtons) this.presetButtons.classList.remove('protected');
+        }
+    }
+
+    async handleProtectionButton() {
+        const isProtected = await this.isPasswordProtectionEnabled();
+        
+        if (isProtected) {
+            // Remove protection - require password first
+            this.promptPassword('remove', 'Enter password to remove protection:');
+        } else {
+            // Add protection - show setup modal
+            this.showSetupModal();
+        }
+    }
+
+    showSetupModal() {
+        if (this.setupModal) {
+            this.setupModal.style.display = 'flex';
+            if (this.newPasswordInput) this.newPasswordInput.value = '';
+            if (this.confirmPasswordInput) this.confirmPasswordInput.value = '';
+            if (this.setupError) this.setupError.style.display = 'none';
+            setTimeout(() => {
+                if (this.newPasswordInput) this.newPasswordInput.focus();
+            }, 100);
+        }
+    }
+
+    hideSetupModal() {
+        if (this.setupModal) {
+            this.setupModal.style.display = 'none';
+        }
+    }
+
+    async handleSetPassword() {
+        const password = this.newPasswordInput ? this.newPasswordInput.value.trim() : '';
+        const confirmPassword = this.confirmPasswordInput ? this.confirmPasswordInput.value.trim() : '';
+
+        if (!password) {
+            this.showSetupError('Please enter a password');
+            return;
+        }
+
+        if (password.length < 4) {
+            this.showSetupError('Password must be at least 4 characters');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            this.showSetupError('Passwords do not match');
+            return;
+        }
+
+        try {
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const hashedPassword = await this.hashPassword(password, salt);
+            
+            await chrome.storage.local.set({
+                blockerPassword: Array.from(hashedPassword),
+                passwordSalt: Array.from(salt),
+                passwordProtectionEnabled: true
+            });
+
+            this.hideSetupModal();
+            this.updateUI(true);
+            showMessage('Password protection enabled', 'success');
+        } catch (error) {
+            console.error('Error setting password:', error);
+            this.showSetupError('Failed to set password');
+        }
+    }
+
+    showSetupError(message) {
+        if (this.setupErrorText) this.setupErrorText.textContent = message;
+        if (this.setupError) this.setupError.style.display = 'block';
+    }
+
+    async hashPassword(password, salt) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password + Array.from(salt).join(''));
+        return new Uint8Array(await crypto.subtle.digest('SHA-256', data));
+    }
+
+    verifyPassword(inputPassword, callback) {
+        console.log('Verifying password...');
+        chrome.storage.local.get(['blockerPassword', 'passwordSalt'], (result) => {
+            console.log('Storage result:', result);
+            
+            if (!result.blockerPassword || !result.passwordSalt) {
+                console.log('No password data found in storage');
+                callback(false);
+                return;
+            }
+
+            try {
+                const storedHash = new Uint8Array(result.blockerPassword);
+                const salt = new Uint8Array(result.passwordSalt);
+                
+                this.hashPassword(inputPassword, salt).then(inputHash => {
+                    const isValid = this.arraysEqual(storedHash, inputHash);
+                    console.log('Password verification result:', isValid);
+                    callback(isValid);
+                }).catch(error => {
+                    console.error('Error hashing password for verification:', error);
+                    callback(false);
+                });
+            } catch (error) {
+                console.error('Error verifying password:', error);
+                callback(false);
+            }
+        });
+    }
+
+    arraysEqual(a, b) {
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) return false;
+        }
+        return true;
+    }
+
+    promptPassword(action, message) {
+        this.pendingAction = action;
+        const promptText = document.getElementById('passwordPromptText');
+        if (promptText) promptText.textContent = message;
+        if (this.passwordPrompt) this.passwordPrompt.value = '';
+        if (this.passwordError) this.passwordError.style.display = 'none';
+        this.showPasswordModal();
+    }
+
+    showPasswordModal() {
+        if (this.verifyModal) {
+            this.verifyModal.style.display = 'flex';
+            setTimeout(() => {
+                if (this.passwordPrompt) this.passwordPrompt.focus();
+            }, 100);
+        }
+    }
+
+    hidePasswordModal() {
+        if (this.verifyModal) this.verifyModal.style.display = 'none';
+        this.pendingAction = null;
+    }
+
+    handlePasswordConfirm() {
+        const password = this.passwordPrompt ? this.passwordPrompt.value : '';
+        console.log('handlePasswordConfirm called, action:', this.pendingAction);
+        console.log('Password length:', password.length);
+        
+        this.verifyPassword(password, (isValid) => {
+            console.log('Password validation result:', isValid);
+
+            if (!isValid) {
+                if (this.passwordError) this.passwordError.style.display = 'block';
+                if (this.passwordPrompt) {
+                    this.passwordPrompt.value = '';
+                    this.passwordPrompt.focus();
+                }
+                return;
+            }
+
+            this.hidePasswordModal();
+
+            if (this.pendingAction === 'remove') {
+                console.log('Attempting to remove password protection...');
+                chrome.storage.local.remove(['blockerPassword', 'passwordSalt', 'passwordProtectionEnabled'], () => {
+                    if (chrome.runtime.lastError) {
+                        console.error('Error removing password:', chrome.runtime.lastError);
+                        showMessage('Failed to remove password protection', 'error');
+                    } else {
+                        console.log('Password protection data removed from storage');
+                        this.updateUI(false);
+                        showMessage('Password protection removed', 'info');
+                    }
+                });
+            }
+        });
+    }
+
+    requirePassword(action, message = 'Enter password to modify blocked websites:', callback) {
+        this.isPasswordProtectionEnabled((isEnabled) => {
+            if (!isEnabled) {
+                callback(true);
+                return;
+            }
+
+            this.pendingAction = action;
+            const promptText = document.getElementById('passwordPromptText');
+            if (promptText) promptText.textContent = message;
+            if (this.passwordPrompt) this.passwordPrompt.value = '';
+            if (this.passwordError) this.passwordError.style.display = 'none';
+            
+            const originalHandleConfirm = this.handlePasswordConfirm.bind(this);
+            this.handlePasswordConfirm = () => {
+                const password = this.passwordPrompt ? this.passwordPrompt.value : '';
+                this.verifyPassword(password, (isValid) => {
+                    if (!isValid) {
+                        if (this.passwordError) this.passwordError.style.display = 'block';
+                        if (this.passwordPrompt) {
+                            this.passwordPrompt.value = '';
+                            this.passwordPrompt.focus();
+                        }
+                        return;
+                    }
+
+                    this.hidePasswordModal();
+                    this.handlePasswordConfirm = originalHandleConfirm;
+                    callback(true);
+                });
+            };
+
+            const originalCancel = this.hidePasswordModal.bind(this);
+            this.hidePasswordModal = () => {
+                originalCancel();
+                this.handlePasswordConfirm = originalHandleConfirm;
+                this.hidePasswordModal = originalCancel;
+                callback(false);
+            };
+
+            this.showPasswordModal();
+        });
+    }
+
+    isPasswordProtectionEnabled(callback) {
+        chrome.storage.local.get(['blockerPassword', 'passwordProtectionEnabled'], (result) => {
+            if (chrome.runtime.lastError) {
+                console.error('Error checking password protection status:', chrome.runtime.lastError);
+                callback(false);
+                return;
+            }
+            const isEnabled = !!result.blockerPassword && result.passwordProtectionEnabled !== false;
+            callback(isEnabled);
+        });
+    }
+}
+
+// Initialize password protection
+let passwordProtection;
+
 // Initialize blocker when DOM loads
-document.addEventListener('DOMContentLoaded', initWebsiteBlocker);
+document.addEventListener('DOMContentLoaded', () => {
+    initWebsiteBlocker();
+    passwordProtection = new PasswordProtection();
+});
 
 // Initialize timer when DOM is loaded
 document.addEventListener('DOMContentLoaded', initTimer);

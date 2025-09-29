@@ -616,3 +616,256 @@ header h1 {
     height: 20px;
 }
 
+/* Password Protection Styles */
+.password-protection-container {
+    margin-top: 0.75rem;
+    text-align: center;
+}
+
+.password-protection-btn {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    background-color: transparent;
+    color: var(--primary-color);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.password-protection-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(139, 92, 246, 0.2);
+}
+
+.password-protection-btn.protected {
+    background-color: #dc2626;
+    border-color: #dc2626;
+    color: white;
+}
+
+.password-protection-btn.protected:hover {
+    background-color: #b91c1c;
+    border-color: #b91c1c;
+    box-shadow: 0 4px 8px rgba(220, 38, 38, 0.2);
+}
+
+/* Protected List Styles */
+.blocked-list.protected {
+    position: relative;
+    pointer-events: none;
+    filter: blur(1px);
+    opacity: 0.6;
+}
+
+.blocked-list.protected::after {
+    content: "🔒 Protected";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(139, 92, 246, 0.9);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.add-website.protected {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.preset-buttons.protected {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* Password Modal Styles */
+.password-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+}
+
+.modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 999998;
+}
+
+.modal-content {
+    position: relative;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    width: 90%;
+    max-width: 320px;
+    overflow: hidden;
+    z-index: 1000000;
+    border: 2px solid var(--primary-color);
+    pointer-events: auto;
+}
+
+.modal-content * {
+    pointer-events: auto;
+}
+
+.modal-header {
+    padding: 1rem;
+    background-color: var(--primary-color);
+    color: white;
+    text-align: center;
+}
+
+.modal-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.modal-body {
+    padding: 1rem;
+}
+
+.modal-body p {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.875rem;
+    color: var(--text-light);
+    text-align: center;
+}
+
+.password-error {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+.modal-footer {
+    padding: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    background-color: #f8f9fa;
+}
+
+.password-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background-color: white;
+    color: var(--text-light);
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 1000001;
+    pointer-events: auto;
+}
+
+.password-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+}
+
+.password-input::placeholder {
+    color: #94a3b8;
+}
+
+.modal-footer .btn {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    position: relative;
+    z-index: 1000001;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.modal-footer .btn:hover {
+    transform: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode password styles */
+.darkMode .password-protection-btn {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.darkMode .password-protection-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.darkMode .password-protection-btn.protected {
+    background-color: #dc2626;
+    border-color: #dc2626;
+    color: white;
+}
+
+.darkMode .blocked-list.protected::after {
+    background-color: rgba(139, 92, 246, 0.9);
+}
+
+.darkMode .password-input {
+    background-color: #374151;
+    border-color: var(--border-dark);
+    color: var(--text-dark);
+}
+
+.darkMode .password-input::placeholder {
+    color: #9ca3af;
+}
+
+.darkMode .modal-content {
+    background-color: var(--bg-dark);
+    color: var(--text-dark);
+}
+
+.darkMode .modal-body p {
+    color: var(--text-dark);
+}
+
+.darkMode .modal-footer {
+    background-color: #374151;
+}
+
+.darkMode .password-error {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+    border-color: #991b1b;
+}
+
