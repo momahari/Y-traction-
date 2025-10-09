@@ -296,14 +296,16 @@ function handleTimerComplete() {
     clearInterval(timerInterval);
     
     if (currentTimerState.mode === 'focus') {
-        // Focus session complete - notify only for focus completion
+        // Focus session complete - notify for focus completion
         chrome.runtime.sendMessage({
             type: "timerComplete",
             mode: currentTimerState.mode,
             cycle: currentTimerState.currentCycle
         });
         
-        // Switch to rest mode
+        console.log(`Focus session ${currentTimerState.currentCycle} completed`);
+        
+        // Switch to rest mode (same cycle)
         currentTimerState.mode = 'rest';
         currentTimerState.timeLeft = currentTimerState.restMinutes * 60;
         currentTimerState.totalTime = currentTimerState.restMinutes * 60;
@@ -311,15 +313,24 @@ function handleTimerComplete() {
         updateCycleDisplay();
         updateModeDisplay();
         updateProgressBar();
+        updateTimerDisplay();
+        updateButtonStates();
+        updateCycleDots();
         
-        // Auto-start rest session (no notification for rest start)
+        console.log(`Starting rest session for cycle ${currentTimerState.currentCycle}`);
+        
+        // Auto-start rest session
         runTimer();
     } else {
-        // Rest session complete
+        // Rest session complete - this completes one full cycle
+        console.log(`Rest session ${currentTimerState.currentCycle} completed`);
+        
+        // Increment cycle after completing focus + rest
         currentTimerState.currentCycle++;
         
         if (currentTimerState.currentCycle > currentTimerState.totalCycles) {
             // All cycles complete - show final notification
+            console.log(`All ${currentTimerState.totalCycles} cycles completed!`);
             chrome.runtime.sendMessage({
                 type: "allCyclesComplete",
                 totalCycles: currentTimerState.totalCycles
@@ -327,7 +338,8 @@ function handleTimerComplete() {
             resetTimer();
             return;
         } else {
-            // Start next focus session (no notification for rest completion or focus start)
+            // Start next focus session
+            console.log(`Starting focus session for cycle ${currentTimerState.currentCycle}`);
             currentTimerState.mode = 'focus';
             currentTimerState.timeLeft = currentTimerState.focusMinutes * 60;
             currentTimerState.totalTime = currentTimerState.focusMinutes * 60;
@@ -335,6 +347,9 @@ function handleTimerComplete() {
             updateCycleDisplay();
             updateModeDisplay();
             updateProgressBar();
+            updateTimerDisplay();
+            updateButtonStates();
+            updateCycleDots();
             
             // Auto-start next focus session
             runTimer();
