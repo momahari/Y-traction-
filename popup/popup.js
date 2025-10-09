@@ -142,9 +142,21 @@ function initTimer() {
             currentTimerState.restMinutes = settings.restMinutes || 5;
             currentTimerState.totalCycles = settings.totalCycles || 4;
             
+            console.log(`Loaded timer settings:`, {
+                focusMinutes: currentTimerState.focusMinutes,
+                restMinutes: currentTimerState.restMinutes,
+                totalCycles: currentTimerState.totalCycles
+            });
+            
             if (focusInput) focusInput.value = currentTimerState.focusMinutes;
             if (restInput) restInput.value = currentTimerState.restMinutes;
             if (cyclesInput) cyclesInput.value = currentTimerState.totalCycles;
+        } else {
+            console.log(`No saved settings found, using defaults:`, {
+                focusMinutes: currentTimerState.focusMinutes,
+                restMinutes: currentTimerState.restMinutes,
+                totalCycles: currentTimerState.totalCycles
+            });
         }
         updateCycleDots();
     });
@@ -172,7 +184,10 @@ function initTimer() {
 
     if (cyclesInput) {
         cyclesInput.addEventListener('change', () => {
-            currentTimerState.totalCycles = parseInt(cyclesInput.value) || 4;
+            const newCycles = parseInt(cyclesInput.value) || 4;
+            console.log(`Cycles input changed to: ${newCycles}`);
+            currentTimerState.totalCycles = newCycles;
+            console.log(`currentTimerState.totalCycles set to: ${currentTimerState.totalCycles}`);
             saveTimerSettings();
             updateCycleDots();
             if (currentTimerState.currentCycle > currentTimerState.totalCycles) {
@@ -199,11 +214,23 @@ function initTimer() {
     chrome.storage.local.get(['timerState'], (result) => {
         if (result.timerState) {
             const savedState = result.timerState;
+            console.log(`Found saved timer state:`, savedState);
+            console.log(`Saved state totalCycles: ${savedState.totalCycles}`);
+            console.log(`Current state totalCycles before restore: ${currentTimerState.totalCycles}`);
+            
             if (savedState.isRunning && savedState.endTime) {
                 const remainingTime = Math.max(0, Math.floor((savedState.endTime - Date.now()) / 1000));
                 if (remainingTime > 0) {
-                    // Restore timer state
-                    currentTimerState = { ...savedState, timeLeft: remainingTime };
+                    // Restore timer state but preserve settings from storage
+                    const preservedSettings = {
+                        focusMinutes: currentTimerState.focusMinutes,
+                        restMinutes: currentTimerState.restMinutes,
+                        totalCycles: currentTimerState.totalCycles
+                    };
+                    
+                    currentTimerState = { ...savedState, timeLeft: remainingTime, ...preservedSettings };
+                    console.log(`Timer state restored with preserved settings:`, currentTimerState);
+                    
                     updateTimerDisplay();
                     updateProgressBar();
                     updateCycleDisplay();
@@ -215,14 +242,26 @@ function initTimer() {
                     }
                 } else {
                     // Timer expired while popup was closed
+                    console.log(`Timer expired, handling completion`);
                     handleTimerComplete();
                 }
             }
+        } else {
+            console.log(`No saved timer state found`);
         }
     });
 }
 
 function startTimer() {
+    console.log(`Starting timer - Current state:`, {
+        mode: currentTimerState.mode,
+        currentCycle: currentTimerState.currentCycle,
+        totalCycles: currentTimerState.totalCycles,
+        focusMinutes: currentTimerState.focusMinutes,
+        restMinutes: currentTimerState.restMinutes,
+        isPaused: currentTimerState.isPaused
+    });
+    
     if (currentTimerState.isPaused) {
         // Resume paused timer
         currentTimerState.isPaused = false;
@@ -324,9 +363,12 @@ function handleTimerComplete() {
     } else {
         // Rest session complete - this completes one full cycle
         console.log(`Rest session ${currentTimerState.currentCycle} completed`);
+        console.log(`Current totalCycles setting: ${currentTimerState.totalCycles}`);
         
         // Increment cycle after completing focus + rest
         currentTimerState.currentCycle++;
+        console.log(`Incremented to cycle: ${currentTimerState.currentCycle}`);
+        console.log(`Checking if ${currentTimerState.currentCycle} > ${currentTimerState.totalCycles}`);
         
         if (currentTimerState.currentCycle > currentTimerState.totalCycles) {
             // All cycles complete - show final notification
@@ -339,7 +381,7 @@ function handleTimerComplete() {
             return;
         } else {
             // Start next focus session
-            console.log(`Starting focus session for cycle ${currentTimerState.currentCycle}`);
+            console.log(`Starting focus session for cycle ${currentTimerState.currentCycle} of ${currentTimerState.totalCycles}`);
             currentTimerState.mode = 'focus';
             currentTimerState.timeLeft = currentTimerState.focusMinutes * 60;
             currentTimerState.totalTime = currentTimerState.focusMinutes * 60;
